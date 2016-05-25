@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE packagegui SYSTEM "../schema/packages.dtd">
+<?xml-stylesheet type="text/xsl" href="../xsl/package.xsl"?>
+<packagegui>
+	<copyright>
+<![CDATA[
+/* $Id$ */
+/* ====================================================================================== */
+/*
+	stunnel_certs.xml
+	part of pfSense (https://www.pfSense.org/)
+	Copyright (C) 2007-2009 Scott Ullrich
+	Copyright (C) 2015 ESF, LLC
+	All rights reserved.
+*/
+/* ====================================================================================== */
+/*
+	Redistribution and use in source and binary forms, with or without
+	modification, are permitted provided that the following conditions are met:
+
+
+	1. Redistributions of source code must retain the above copyright notice,
+	   this list of conditions and the following disclaimer.
+
+	2. Redistributions in binary form must reproduce the above copyright
+	   notice, this list of conditions and the following disclaimer in the
+	   documentation and/or other materials provided with the distribution.
+
+
+	THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+	INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+	AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+	AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+	OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+	INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+	CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+	ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+	POSSIBILITY OF SUCH DAMAGE.
+*/
+/* ====================================================================================== */
+	]]>
+	</copyright>
+	<name>stunnelcerts</name>
+	<version>5.20.2</version>
+	<title>Services: Secure Tunnel - Certificates</title>
+	<include_file>/usr/local/pkg/stunnel.inc</include_file>
+	<configpath>['installedpackages']['package']['$packagename']['configuration']</configpath>
+	<tabs>
+		<tab>
+			<text>Tunnels</text>
+			<url>/pkg.php?xml=stunnel.xml</url>
+		</tab>
+		<tab>
+			<text>Certificates</text>
+			<url>/pkg.php?xml=stunnel_certs.xml</url>
+			<active/>
+		</tab>
+	</tabs>
+	<adddeleteeditpagefields>
+		<columnitem>
+			<fielddescr>Description</fielddescr>
+			<fieldname>description</fieldname>
+		</columnitem>
+		<columnitem>
+			<fielddescr>Subject</fielddescr>
+			<fieldname>subject</fieldname>
+		</columnitem>
+<!--		<columnitem>
+			<fielddescr>Valid until</fielddescr>
+			<fieldname>expiry</fieldname>
+		</columnitem> -->
+		<columnitem>
+			<fielddescr>Status</fielddescr>
+			<fieldname>status</fieldname>
+		</columnitem>
+	</adddeleteeditpagefields>
+	<fields>
+		<field>
+			<fielddescr>Description</fielddescr>
+			<fieldname>description</fieldname>
+			<description>Enter a (short) description for this certificate.</description>
+			<type>input</type>
+		</field>
+		<field>
+			<fielddescr>Certificate Filename</fielddescr>
+			<fieldname>filename</fieldname>
+			<description>File name of certificate (read-only; updated on save). Extensions (.pem, .chain, .key) are added automatically.</description>
+			<type>input</type>
+		</field>
+		<field>
+			<fielddescr>Certificate Subject</fielddescr>
+			<fieldname>subject</fieldname>
+			<description>Certificate subject (read-only; updated on save)</description>
+			<type>input</type>
+			<size>50</size>
+		</field>
+		<field>
+			<fielddescr>Certificate Valid Until</fielddescr>
+			<fieldname>expiry</fieldname>
+			<description>The certificate will expire on this date, and will no longer work.</description>
+			<type>input</type>
+		</field>
+		<field>
+			<fielddescr>RSA Private Key</fielddescr>
+			<fieldname>cert_key</fieldname>
+			<description>
+				<![CDATA[
+				RSA private key used for certificate. Do not change for existing certificates!<br />
+				]]>
+			</description>
+			<type>textarea</type>
+			<rows>7</rows>
+			<cols>70</cols>
+		</field>
+		<field>
+			<fielddescr>Certificate Chain</fielddescr>
+			<fieldname>cert_chain</fieldname>
+			<description>
+				<![CDATA[
+				Full certificate chain; root certificate on top, then any intermediates, server certificate at the end.<br />
+				<strong>Full chain required for private or EV certificates!</strong>
+				]]>
+			</description>
+			<type>textarea</type>
+			<rows>7</rows>
+			<cols>70</cols>
+		</field>
+	</fields>	
+	<custom_add_php_command>
+		stunnel_save_cert($config);
+		stunnel_save($config);
+	</custom_add_php_command>
+	<custom_php_command_before_form>
+		stunnel_printcsr();
+	</custom_php_command_before_form>
+	<custom_php_after_form_command>
+		stunnel_disablefields();
+	</custom_php_after_form_command>
+	<custom_delete_php_command>
+		stunnel_delete($config);
+	</custom_delete_php_command>
+</packagegui>

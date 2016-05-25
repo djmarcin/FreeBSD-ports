@@ -1,0 +1,7 @@
+pkg/stunnel.xml
+pkg/stunnel.inc
+pkg/stunnel_certs.xml
+www/shortcuts/pkg_stunnel.inc
+/etc/inc/priv/stunnel.priv.inc
+%%DATADIR%%/info.xml
+@dir /etc/inc/priv
