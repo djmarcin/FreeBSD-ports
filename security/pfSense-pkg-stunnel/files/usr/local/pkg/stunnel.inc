@@ -20,6 +20,8 @@
  */
 
 require_once("config.inc");
+require_once("util.inc");
+require_once("pfsense-utils.inc");
 
 global $config;
 define('STUNNEL_LOCALBASE', '/usr/local');
