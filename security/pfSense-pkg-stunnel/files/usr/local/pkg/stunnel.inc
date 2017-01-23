@@ -22,115 +22,22 @@
 require_once("config.inc");
 require_once("util.inc");
 require_once("pfsense-utils.inc");
+require_once("certs.inc");
 
 global $config;
 define('STUNNEL_LOCALBASE', '/usr/local');
 define('STUNNEL_ETCDIR', STUNNEL_LOCALBASE . "/etc/stunnel");
-if (!isset($_GET['id']) and !isset($_POST['id'])) {
-	if ($GLOBALS['config']['installedpackages']['stunnelcerts']['savemsg']) {
-		$savemsg = $GLOBALS['config']['installedpackages']['stunnelcerts']['savemsg'];
-		unset($GLOBALS['config']['installedpackages']['stunnelcerts']['savemsg']);
-		write_config();
-	}
-}
-if (isset($_GET['id'])) {
-	$config['installedpackages']['stunnelcerts']['config'][$_GET['id']]['cert_chain'] =
-		base64_decode($config['installedpackages']['stunnelcerts']['config'][$_GET['id']]['cert_chain']);
-	$config['installedpackages']['stunnelcerts']['config'][$_GET['id']]['cert_key'] =
-		base64_decode($config['installedpackages']['stunnelcerts']['config'][$_GET['id']]['cert_key']);
-}
-$certs = $config['installedpackages']['stunnelcerts']['config'];
-is_array($certs) ? $num_certs = count($certs) : $num_certs = 0;
-if (!isset($_GET['id']) and !isset($_POST['id']) and $num_certs) {
-	for ($i = 0; $i < $num_certs; $i++) {
-		$cert = $certs[$i];
-		$_info = openssl_x509_parse(base64_decode($cert['cert_chain']));
-		$valid = floor(($_info['validTo_time_t'] - time()) / 86400);
-		if ($cert['cert_chain']) {
-			if (!openssl_x509_check_private_key(base64_decode($cert['cert_chain']), base64_decode($cert['cert_key']))) {
-				$_status = '<font color="#AA0000"><strong>Invalid key/cert!</strong></font>';
-			} elseif ($valid < 30) {
-				$_status = '<font color="#B27D4B">Expires in ' . $valid . ' days!</font>';
-			} else {
-				$_status = '<font color="#008800">OK (' . $valid . ' days)</font>';
-			}
-			$config['installedpackages']['stunnelcerts']['config'][$i]['status'] = $_status;
-		} else {
-			unset($config['installedpackages']['stunnelcerts']['config'][$i]);
-		}
-	}
-}
+
+// Initialize the list of tunnels.
 $tunnels = $config['installedpackages']['stunnel']['config'];
 is_array($tunnels) ? $num_tunnels = count($tunnels) : $num_tunnels = 0;
 if (!isset($_GET['id']) and $num_tunnels) {
 	for ($i = 0; $i < $num_tunnels; $i++) {
 		$tunnel = $tunnels[$i];
-		if ($tunnel['certificate']) {
-			$certid = 0;
-			if (is_array($config['installedpackages']['stunnelcerts']['config'])) {
-				foreach ($config['installedpackages']['stunnelcerts']['config'] as $cert) {
-					if ($tunnel['certificate'] == $cert['filename']) {
-						$config['installedpackages']['stunnel']['config'][$i]['certificatelink']=
-							'<a href="/pkg_edit.php?xml=stunnel_certs.xml&act=edit&id=' . $certid . '">' . $cert['description'] . '</a>';
-					}
-					$certid++;
-				}
-			}
-		}
 	}
 }
-function stunnel_printcsr() {
-//	$GLOBALS['savemsg'] = "<pre>" . print_r($GLOBALS['config']['installedpackages']['stunnelcerts']['config'], true) . "</pre>";
-}
-function stunnel_addcerts($config) {
-	$certs=$config['installedpackages']['stunnelcerts']['config'];
-	$tunnels=$config['installedpackages']['stunnel']['config'];
-	?>
-	<script type="text/javascript">
-	//<![CDATA[
-	function addcerts() {
-		<?php
-		foreach ($certs as $cert) {
-			echo("document.forms['iform'].certificate.appendChild(new Option('".$cert['description']."', '".$cert['filename']."'));");
-		}
-		?>
-	}
-	addcerts();
-	for (var i=0; i < document.forms['iform'].certificate.length; i++) {
-		<?php
-		$filename=$tunnels[$_GET['id']]['certificate'];
-		echo('if (document.forms["iform"].certificate[i].value == "'.$filename.'") {');
-		?>
-			document.forms['iform'].certificate[i].selected = true;
-		} else {
-			document.forms['iform'].certificate[i].selected = false;
-		}
-	}
-	//]]>
-	</script>
-	<?php
-}
-function stunnel_disablefields() {
-	?>
-	<script type="text/javascript">
-	//<![CDATA[
-		document.forms['iform'].subject.readOnly=true;
-		document.forms['iform'].filename.readOnly=true;
-		document.forms['iform'].expiry.readOnly=true;
-	//]]>
-	</script>
-	<?php
-}
-function stunnel_delete($config) {
-	$cert=$config['installedpackages']['stunnelcerts']['config'][$_GET['id']];
-	if (isset($_GET['id'])) {
-		unlink_if_exists(STUNNEL_ETCDIR . '/' . $cert['filename'] . '.pem');
-		unlink_if_exists(STUNNEL_ETCDIR . '/' . $cert['filename'] . '.key');
-		unlink_if_exists(STUNNEL_ETCDIR . '/' . $cert['filename'] . '.chain');
-	}
-}
+
 function stunnel_save($config) {
-	$GLOBALS['config']['installedpackages']['stunnelcerts']['savemsg'] = '';
 	conf_mount_rw();
 	safe_mkdir(STUNNEL_ETCDIR, 0755);
 	$fout = fopen(STUNNEL_ETCDIR . "/stunnel.conf", "w");
@@ -141,15 +48,23 @@ function stunnel_save($config) {
 	if (!is_array($config['installedpackages']['stunnel']['config'])) {
 		$config['installedpackages']['stunnel']['config'] = array();
 	}
+
+	// Keep array of in-use certificates so we can clean up after ourselves.
+	$in_use_certs = array();
+	$in_use_certs[] = 'stunnel.pem';
+
 	foreach ($config['installedpackages']['stunnel']['config'] as $pkgconfig) {
 		fwrite($fout, "\n[" . $pkgconfig['description'] . "]\n");
 		if ($pkgconfig['client']) {
 			fwrite($fout, "client = yes" . "\n");
 		}
-		if ($pkgconfig['certificate']) {
-			if (file_exists(STUNNEL_ETCDIR . '/'.$pkgconfig['certificate'].'.key') and file_exists(STUNNEL_ETCDIR . '/'.$pkgconfig['certificate'].'.chain')) {
-				fwrite($fout, "key = " . STUNNEL_ETCDIR . "/" . $pkgconfig['certificate'] . ".key\n");
-				fwrite($fout, "cert = " . STUNNEL_ETCDIR . "/" . $pkgconfig['certificate'] . ".chain\n");
+		if ($pkgconfig['certificate'] && $pkgconfig['certificate'] != 'default') {
+			$cert = lookup_cert($pkgconfig['certificate']);
+			if ($cert != false) {
+				file_put_contents(STUNNEL_ETCDIR . "/{$pkgconfig['certificate']}.pem", 
+					base64_decode($cert['prv']) . base64_decode($cert['crt']) . ca_chain($cert));
+				fwrite($fout, "cert = " . STUNNEL_ETCDIR . "/{$pkgconfig['certificate']}.pem\n");
+				$in_use_certs[] = "{$pkgconfig['certificate']}.pem";
 			}
 		}
 		if ($pkgconfig['sourceip']) {
@@ -160,59 +75,48 @@ function stunnel_save($config) {
 		fwrite($fout, "TIMEOUTclose = 0\n\n");
 	}
 	fclose($fout);
+
+	// Clean up certs that are no longer in use.
+	foreach (glob(STUNNEL_ETCDIR . "/*.pem") as $file) {
+		if (!in_array(basename($file), $in_use_certs)) {
+			unlink($file);
+		}
+	}
+
 	conf_mount_ro();
 	stop_service("stunnel");
 	start_service("stunnel");
 }
-function stunnel_save_cert($config) {
-	$GLOBALS['config']['installedpackages']['stunnelcerts']['savemsg'] = '';
-	if (isset($_POST['id'])) {
-		if (!$_POST['cert_chain']) {
-			$GLOBALS['config']['installedpackages']['stunnelcerts']['savemsg'] .= "Certificate chain must be specified!<br />";
-		}
-		if (!$_POST['cert_key']) {
-			$GLOBALS['config']['installedpackages']['stunnelcerts']['savemsg'] .= "RSA Key must be specified!<br />";
-		}
-		if ($_POST['cert_chain'] and $_POST['cert_key']) {
-			$_cert = openssl_x509_parse($_POST['cert_chain']);
-			if ($_cert['hash']) {
-				if (openssl_x509_check_private_key($_POST['cert_chain'], $_POST['cert_key'])) {
-					file_put_contents(STUNNEL_ETCDIR . '/'. $_cert['hash'] . '.key', $_POST['cert_key']);
-					file_put_contents(STUNNEL_ETCDIR . '/' . $_cert['hash'] . '.chain', $_POST['cert_chain']);
-					file_put_contents(STUNNEL_ETCDIR . '/' . $_cert['hash'] . '.pem', $_POST['cert_key']."\n".$_POST['cert_chain']);
-					system('chown stunnel:stunnel ' . STUNNEL_ETCDIR . '/*');
-					chmod(STUNNEL_ETCDIR . '/' . $_cert['hash'] . '.key', 0600);
-					chmod(STUNNEL_ETCDIR . '/' . $_cert['hash'] . '.pem', 0600);
-					$_POST['filename'] = $_cert['hash'];
-					$_POST['expiry_raw'] = $_cert['validTo_time_t'];
-					$_POST['expiry'] = date('Y-m-d', $_cert['validTo_time_t']);
-					$_POST['subject'] = $_cert['name'];
-				} else {
-					$GLOBALS['config']['installedpackages']['stunnelcerts']['savemsg'] .= "Certificate and key do not match!<br />";
-					$_POST['filename'] = '';
-				}
-			} else {
-				$GLOBALS['config']['installedpackages']['stunnelcerts']['savemsg'] .= "Couldn't parse certificate!<br />";
-				$_POST['expiry_raw'] = '';
-				$_POST['expiry'] = '';
-				$_POST['subject'] = '';
-				$_POST['filename'] = '';
-			}
-		}
-		$_POST['cert_key'] = base64_encode($_POST['cert_key']);
-		$_POST['cert_chain'] = base64_encode($_POST['cert_chain']);
-		$_fname = $GLOBALS['config']['installedpackages']['stunnelcerts']['config'][$_POST['id']]['filename'];
-		if ($_fname and $_fname != $_POST['filename']) {
-			unlink_if_exists(STUNNEL_ETCDIR . '/' . $_fname . '.chain');
-			unlink_if_exists(STUNNEL_ETCDIR . '/' . $_fname . '.key');
-			unlink_if_exists(STUNNEL_ETCDIR . '/' . $_fname . '.pem');
-		}
-	}
-}
+
 function stunnel_install() {
 	safe_mkdir(STUNNEL_ETCDIR);
-	system("/usr/bin/openssl req -new -x509 -days 365 -nodes -out " . STUNNEL_ETCDIR . "/stunnel.pem -keyout " . STUNNEL_ETCDIR . "/stunnel.pem 2>/dev/null");
+
+	// Generate a self-signed default certificate.
+	$cert = array();
+	$cert['refid'] = uniqid();
+	$cert['descr'] = sprintf(gettext("stunnel default (%s)"), $cert['refid']);
+
+	$dn = array(
+		'countryName' => "US",
+		'stateOrProvinceName' => "State",
+		'localityName' => "Locality",
+		'organizationName' => "{$g['product_name']} stunnel Self-Signed Certificate",
+		'emailAddress' => "admin@{$config['system']['hostname']}.{$config['system']['domain']}",
+		'commonName' => "{$config['system']['hostname']}-{$cert['refid']}");
+	$old_err_level = error_reporting(0); /* otherwise openssl_ functions throw warnings directly to a page screwing menu tab */
+	if (!cert_create($cert, null, 2048, 365, $dn, "self-signed", "sha256")) {
+		while ($ssl_err = openssl_error_string()) {
+			log_error(sprintf(gettext("Error creating stunnel certificate: openssl library returns: %s"), $ssl_err));
+		}
+		error_reporting($old_err_level);
+		return null;
+	}
+	error_reporting($old_err_level);
+
+	// Write the .pem file to the expected default location for stunnel and set up required permissions.
+	file_put_contents(STUNNEL_ETCDIR . "/stunnel.pem", base64_decode($cert['prv']) . base64_decode($cert['crt']));
 	chmod(STUNNEL_ETCDIR . "/stunnel.pem", 0600);
+
 	@mkdir("/var/tmp/stunnel/var/tmp/run/stunnel", 0755, true);
 	system("/usr/sbin/chown -R stunnel:stunnel /var/tmp/stunnel");
 	$_rcfile['file'] = 'stunnel.sh';
@@ -238,6 +142,7 @@ function stunnel_install() {
 	}
 	fclose($fout);
 }
+
 function stunnel_deinstall() {
 	rmdir_recursive("/var/tmp/stunnel");
 	rmdir_recursive(STUNNEL_ETCDIR);

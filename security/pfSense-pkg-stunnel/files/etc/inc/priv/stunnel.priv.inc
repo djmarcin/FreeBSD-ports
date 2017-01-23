@@ -26,7 +26,6 @@ $priv_list['page-system-stunnel']['name'] = "WebCfg - System: stunnel package";
 $priv_list['page-system-stunnel']['descr'] = "Allow access to stunnel package GUI";
 $priv_list['page-system-stunnel']['match'] = array();
 $priv_list['page-system-stunnel']['match'][] = "pkg_edit.php?xml=stunnel.xml*";
-$priv_list['page-system-stunnel']['match'][] = "pkg_edit.php?xml=stunnel_certs.xml*";
 $priv_list['page-services-stunnel']['match'][] = "shortcuts/pkg_stunnel.inc*";
 
 ?>

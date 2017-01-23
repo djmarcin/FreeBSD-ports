@@ -40,10 +40,6 @@
 			<url>/pkg.php?xml=stunnel.xml</url>
 			<active/>
 		</tab>
-		<tab>
-			<text>Certificates</text>
-			<url>/pkg.php?xml=stunnel_certs.xml</url>
-		</tab>
 	</tabs>
 	<service>
 		<name>stunnel</name>
@@ -104,11 +100,12 @@
 		<field>
 			<fielddescr>Certificate</fielddescr>
 			<fieldname>certificate</fieldname>
-			<description>Select server certificate to use for this tunnel. Certificates are defined on the 'Certificates' page.</description>
-			<type>select</type>
-			<options>
-				<option><name>default</name><value></value></option>
-			</options>
+			<description>Select server certificate to use for this tunnel.</description>
+			<type>select_source</type>
+			<source><![CDATA[$config['cert']]]></source>
+			<source_name>descr</source_name>
+			<source_value>refid</source_value>
+			<show_disable_value>default</show_disable_value>
 			<default_value>default</default_value>
 		</field>
 		<field>
@@ -133,13 +130,13 @@
 	<custom_add_php_command_late>
 		stunnel_save($config);
 	</custom_add_php_command_late>
+	<custom_delete_php_command>
+		stunnel_save($config);
+	</custom_delete_php_command>
 	<custom_php_install_command>
 		stunnel_install();
 	</custom_php_install_command>
 	<custom_php_deinstall_command>
 		stunnel_deinstall();
 	</custom_php_deinstall_command>
-	<custom_php_after_form_command>
-		stunnel_addcerts($config);
-	</custom_php_after_form_command>
 </packagegui>

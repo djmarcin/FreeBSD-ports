@@ -32,8 +32,6 @@ do-install:
 		${STAGEDIR}${PREFIX}/pkg
 	${INSTALL_DATA} ${FILESDIR}${PREFIX}/pkg/stunnel.inc \
 		${STAGEDIR}${PREFIX}/pkg
-	${INSTALL_DATA} -m 0644 ${FILESDIR}${PREFIX}/pkg/stunnel_certs.xml \
-		${STAGEDIR}${PREFIX}/pkg
 	${INSTALL_DATA} ${FILESDIR}/etc/inc/priv/stunnel.priv.inc \
 		${STAGEDIR}/etc/inc/priv
 	${INSTALL_DATA} ${FILESDIR}${PREFIX}/www/shortcuts/pkg_stunnel.inc \
@@ -42,7 +40,6 @@ do-install:
 		${STAGEDIR}${DATADIR}
 	@${REINPLACE_CMD} -i '' -e "s|%%PKGVERSION%%|${PKGVERSION}|" \
 		${STAGEDIR}${DATADIR}/info.xml \
-		${STAGEDIR}${PREFIX}/pkg/stunnel.xml \
-		${STAGEDIR}${PREFIX}/pkg/stunnel_certs.xml
+		${STAGEDIR}${PREFIX}/pkg/stunnel.xml
 
 .include <bsd.port.mk>
