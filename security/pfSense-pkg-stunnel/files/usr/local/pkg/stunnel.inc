@@ -83,31 +83,34 @@ function stunnel_install() {
 	global $config;
 	safe_mkdir(STUNNEL_ETCDIR);
 
-	// Generate a self-signed default certificate.
-	$cert = array();
-	$cert['refid'] = uniqid();
-	$cert['descr'] = sprintf(gettext("stunnel default (%s)"), $cert['refid']);
+	// Generate a self-signed default certificate if one does not already exist.
+	$stunnel_pem_filename = STUNNEL_ETCDIR . "/stunnel.pem";
+	if (!file_exists($stunnel_pem_filename)) {
+		$cert = array();
+		$cert['refid'] = uniqid();
+		$cert['descr'] = sprintf(gettext("stunnel default (%s)"), $cert['refid']);
 
-	$dn = array(
-		'countryName' => "US",
-		'stateOrProvinceName' => "State",
-		'localityName' => "Locality",
-		'organizationName' => "{$g['product_name']} stunnel Self-Signed Certificate",
-		'emailAddress' => "admin@{$config['system']['hostname']}.{$config['system']['domain']}",
-		'commonName' => "{$config['system']['hostname']}-{$cert['refid']}");
-	$old_err_level = error_reporting(0); /* otherwise openssl_ functions throw warnings directly to a page screwing menu tab */
-	if (!cert_create($cert, null, 2048, 365, $dn, "self-signed", "sha256")) {
-		while ($ssl_err = openssl_error_string()) {
-			log_error(sprintf(gettext("Error creating stunnel certificate: openssl library returns: %s"), $ssl_err));
+		$dn = array(
+			'countryName' => "US",
+			'stateOrProvinceName' => "State",
+			'localityName' => "Locality",
+			'organizationName' => "{$g['product_name']} stunnel Self-Signed Certificate",
+			'emailAddress' => "admin@{$config['system']['hostname']}.{$config['system']['domain']}",
+			'commonName' => "{$config['system']['hostname']}-{$cert['refid']}");
+		$old_err_level = error_reporting(0); /* otherwise openssl_ functions throw warnings directly to a page screwing menu tab */
+		if (!cert_create($cert, null, 2048, 365, $dn, "self-signed", "sha256")) {
+			while ($ssl_err = openssl_error_string()) {
+				log_error(sprintf(gettext("Error creating stunnel certificate: openssl library returns: %s"), $ssl_err));
+			}
+			error_reporting($old_err_level);
+			return null;
 		}
 		error_reporting($old_err_level);
-		return null;
-	}
-	error_reporting($old_err_level);
 
-	// Write the .pem file to the expected default location for stunnel and set up required permissions.
-	file_put_contents(STUNNEL_ETCDIR . "/stunnel.pem", base64_decode($cert['prv']) . base64_decode($cert['crt']));
-	chmod(STUNNEL_ETCDIR . "/stunnel.pem", 0600);
+		// Write the .pem file to the expected default location for stunnel and set up required permissions.
+		file_put_contents(STUNNEL_ETCDIR . "/stunnel.pem", base64_decode($cert['prv']) . base64_decode($cert['crt']));
+		chmod(STUNNEL_ETCDIR . "/stunnel.pem", 0600);
+	}
 
 	@mkdir("/var/tmp/stunnel/var/tmp/run/stunnel", 0755, true);
 	system("/usr/sbin/chown -R stunnel:stunnel /var/tmp/stunnel");
