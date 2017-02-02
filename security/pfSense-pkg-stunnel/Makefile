@@ -35,7 +35,7 @@ do-install:
 	${INSTALL_DATA} ${FILESDIR}/etc/inc/priv/stunnel.priv.inc \
 		${STAGEDIR}/etc/inc/priv
 	${INSTALL_DATA} ${FILESDIR}${PREFIX}/www/shortcuts/pkg_stunnel.inc \
-                ${STAGEDIR}${PREFIX}/www/shortcuts
+		${STAGEDIR}${PREFIX}/www/shortcuts
 	${INSTALL_DATA} ${FILESDIR}${DATADIR}/info.xml \
 		${STAGEDIR}${DATADIR}
 	@${REINPLACE_CMD} -i '' -e "s|%%PKGVERSION%%|${PKGVERSION}|" \
