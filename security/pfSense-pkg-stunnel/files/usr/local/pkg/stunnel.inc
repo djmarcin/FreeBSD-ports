@@ -124,23 +124,6 @@ function stunnel_install() {
 	$_rcfile['stop'] = "/usr/bin/killall stunnel \n\t";
 	write_rcfile($_rcfile);
 	unlink_if_exists("/usr/local/etc/rc.d/stunnel");
-	$fout = fopen(STUNNEL_ETCDIR . "/stunnel.conf", "w");
-	fwrite($fout, "cert = " . STUNNEL_ETCDIR . "/stunnel.pem \n");
-	fwrite($fout, "chroot = /var/tmp/stunnel \n");
-	fwrite($fout, "setuid = stunnel \n");
-	fwrite($fout, "setgid = stunnel \n");
-	if ($config['installedpackages']['stunnel']['config']) {
-		foreach ($config['installedpackages']['stunnel']['config'] as $pkgconfig) {
-			fwrite($fout, "\n[" . $pkgconfig['description'] . "]\n");
-			if ($pkgconfig['sourceip']) {
-				fwrite($fout, "local = " . $pkgconfig['sourceip'] . "\n");
-			}
-			fwrite($fout, "accept = " . ($pkgconfig['localip'] ? $pkgconfig['localip'] . ":" : "") . $pkgconfig['localport'] . "\n");
-			fwrite($fout, "connect = " . $pkgconfig['redirectip'] . ":" . $pkgconfig['redirectport'] . "\n");
-			fwrite($fout, "TIMEOUTclose = 0\n\n");
-		}
-	}
-	fclose($fout);
 }
 
 function stunnel_deinstall() {
