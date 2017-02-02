@@ -128,10 +128,10 @@
 		</field>
 	</fields>
 	<custom_add_php_command_late>
-		stunnel_save($config);
+		stunnel_save();
 	</custom_add_php_command_late>
 	<custom_delete_php_command>
-		stunnel_save($config);
+		stunnel_save();
 	</custom_delete_php_command>
 	<custom_php_install_command>
 		stunnel_install();
@@ -139,4 +139,7 @@
 	<custom_php_deinstall_command>
 		stunnel_deinstall();
 	</custom_php_deinstall_command>
+	<custom_php_resync_config_command>
+		stunnel_save();
+	</custom_php_resync_config_command>
 </packagegui>

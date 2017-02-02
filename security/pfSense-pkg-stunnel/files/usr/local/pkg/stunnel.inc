@@ -24,20 +24,11 @@ require_once("util.inc");
 require_once("pfsense-utils.inc");
 require_once("certs.inc");
 
-global $config;
 define('STUNNEL_LOCALBASE', '/usr/local');
 define('STUNNEL_ETCDIR', STUNNEL_LOCALBASE . "/etc/stunnel");
 
-// Initialize the list of tunnels.
-$tunnels = $config['installedpackages']['stunnel']['config'];
-is_array($tunnels) ? $num_tunnels = count($tunnels) : $num_tunnels = 0;
-if (!isset($_GET['id']) and $num_tunnels) {
-	for ($i = 0; $i < $num_tunnels; $i++) {
-		$tunnel = $tunnels[$i];
-	}
-}
-
-function stunnel_save($config) {
+function stunnel_save() {
+	global $config;
 	conf_mount_rw();
 	safe_mkdir(STUNNEL_ETCDIR, 0755);
 	$fout = fopen(STUNNEL_ETCDIR . "/stunnel.conf", "w");
@@ -89,6 +80,7 @@ function stunnel_save($config) {
 }
 
 function stunnel_install() {
+	global $config;
 	safe_mkdir(STUNNEL_ETCDIR);
 
 	// Generate a self-signed default certificate.
