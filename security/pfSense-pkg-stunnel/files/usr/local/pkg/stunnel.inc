@@ -19,10 +19,12 @@
  * limitations under the License.
  */
 
-require_once("config.inc");
-require_once("util.inc");
-require_once("pfsense-utils.inc");
 require_once("certs.inc");
+require_once("config.inc");
+require_once("pfsense-utils.inc");
+require_once("util.inc");
+require_once('services.inc');
+require_once('service-utils.inc');
 
 define('STUNNEL_LOCALBASE', '/usr/local');
 define('STUNNEL_ETCDIR', STUNNEL_LOCALBASE . "/etc/stunnel");
