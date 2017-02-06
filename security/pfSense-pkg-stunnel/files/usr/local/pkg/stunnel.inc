@@ -77,8 +77,8 @@ function stunnel_save() {
 	}
 
 	conf_mount_ro();
-	stop_service("stunnel");
-	start_service("stunnel");
+
+	restart_service("stunnel");
 }
 
 function stunnel_install() {
